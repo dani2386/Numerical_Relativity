@@ -1,24 +1,19 @@
-from src.WaveEquationSolver import WaveEquationSolver
 import numpy as np
+import matplotlib.pyplot as plt
+from src.WEConvergengeTester import WEConvergenceTester
 
 
-n = 120
-m = 100
+X = 100
 delta_x = 1
-delta_t = 0.5
+courant_param = 1
+T = 20
 
+init = [lambda x: np.exp(-pow(x - 20, 2)/(2 * pow(2 , 2))),
+        lambda x: (x - 20) / pow(2, 2) * np.exp(-pow(x - 20, 2)/(2 * pow(2 , 2)))]
 
-def f(x):
-    return np.exp(-pow(x - 20, 2)/(2 * pow(2 , 2)))
+f = lambda x, t: np.exp(-pow(x - t - 20, 2) / 4)
 
+tester = WEConvergenceTester(X, init, T, f)
 
-def g(x):
-    return (x - 20) / pow(2, 2) * f(x)
-
-
-wave_equation_solver = WaveEquationSolver(n, m, delta_t, delta_x)
-wave_equation_solver.solve_explicit(f, g)
-
-wave_equation_solver.draw_n(0)
-wave_equation_solver.draw_n(n)
-wave_equation_solver.animate()
+plt.plot(tester.norm_convergence(courant_param, delta_x, 6))
+plt.show()
