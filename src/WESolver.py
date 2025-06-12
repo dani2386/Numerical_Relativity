@@ -7,7 +7,7 @@ class WESolver1D(PDESolver):
     def __init__(self, path, x, t, init, bc):
         super().__init__(path, x, t, init, bc,None)
 
-    def solve(self, params, depth):
+    def solve(self, params, depth, scale=None):
         courant_param, dx, sigma = params
 
         self.f = [
@@ -20,20 +20,34 @@ class WESolver1D(PDESolver):
 
 class WESolver3D(PDESolver):
     def __init__(self, path, x, t, init):
-        super().__init__(path, x, t, init, ['sym', None],None)
+        super().__init__(path, x, t, init, ['sym', None], None)
 
-    def solve(self, params, depth):
+    def solve(self, params, depth, scale=None):
         courant_param, dx, sigma, dt, m_max, n_max, x_grid = self.params(params)[:-1]
 
-        # linear
+        scale = [
+            lambda u: x_grid * u,
+            lambda u: np.concatenate(([first_diff_tem(u, dx, self.bc)[0]], u[1:] / x_grid[1:]))
+        ]
+
+        # linear (rescaled)
         self.f = [
             lambda t, u, v: v,
             lambda t, u, v: np.concatenate((
-                [3 * second_diff_tem(u, dx, self.bc)[0]],
-                second_diff_tem(u, dx) + 2 * first_diff_tem(u, dx) / x_grid[1:-1],
+                second_diff_tem(u, dx, self.bc)[:-1],
                 [-first_diff_tem(v, dx, self.bc)[-1] - v[-1] / x_grid[-1]]
             ))
         ]
+
+#        # linear
+#        self.f = [
+#            lambda t, u, v: v,
+#            lambda t, u, v: np.concatenate((
+#                [3 * second_diff_tem(u, dx, self.bc)[0]],
+#                second_diff_tem(u, dx) + 2 * first_diff_tem(u, dx) / x_grid[1:-1],
+#                [-first_diff_tem(v, dx, self.bc)[-1] - v[-1] / x_grid[-1]]
+#            ))
+#        ]
 
 #        # exploding non-linear
 #        self.f = [
@@ -55,7 +69,7 @@ class WESolver3D(PDESolver):
 #            ))
 #        ]
 
-        return super().solve(params, depth)
+        return super().solve(params, depth, scale)
 
 
 class WESolver1DHyper(PDESolver):
@@ -64,7 +78,7 @@ class WESolver1DHyper(PDESolver):
         self.s = s
         super().__init__(path, s, t, init, bc, None)
 
-    def solve(self, params, depth):
+    def solve(self, params, depth, scale=None):
         courant_param, dx, sigma, dt, m_max, n_max, x_grid = self.params(params)[:-1]
 
         omega = 1 - np.heaviside(x_grid[:-1] - self.r, 1) * (x_grid[:-1] - self.r)**2 / (self.s - self.r)**2
@@ -92,7 +106,7 @@ class WESolver3DHyper(PDESolver):
         self.s = s
         super().__init__(path, s, t, init, ['sym', None], None)
 
-    def solve(self, params, depth):
+    def solve(self, params, depth, scale=None):
         courant_param, dx, sigma, dt, m_max, n_max, x_grid = self.params(params)[:-1]
 
         omega = 1 - np.heaviside(x_grid[1:-1] - self.r, 1) * ((x_grid[1:-1] - self.r) / (self.s - self.r))**4
@@ -101,18 +115,23 @@ class WESolver3DHyper(PDESolver):
         d_l = np.heaviside(x_grid[1:-1] - self.r, 1) * 12 * x_grid[1:-1] * (x_grid[1:-1] - self.r)**2 / (self.r - self.s)**4
         ricci = 6 * omega * (omega * d_l - 2 * l * d_omega) / (x_grid[1:-1]**2 * l**3)
 
+        scale = [
+            lambda u: np.concatenate(([u[0]], u[1:-1] / omega, [first_diff_tem(u, dx, self.bc)[-1] / (self.s - self.r)])),
+            lambda u: np.concatenate(([u[0]], omega * u[1:-1], [0]))
+        ]
+
         self.f = [
             lambda t, u, v: v,
             lambda t, u, v: np.concatenate((
-                [2 * second_diff_tem(u, dx, self.bc)[0]],
+                [3 * second_diff_tem(u, dx, self.bc)[0]],
                 (l**2 / (omega**2 - 2 * l)) *
                 (- 2 * ((omega**2 - l) / l**2) * first_diff_tem(v, dx)
-                 + (1 / (l * x_grid[1:-1]) - (l * (omega**2 - 2 * x_grid[1:-1] * omega * d_omega) - x_grid[1:-1] * omega**2 * d_l) / (l**3 * x_grid[1:-1])) * v[1:-1]
+                 + (2 / (l * x_grid[1:-1]) - (2 * l * omega * d_omega - omega**2 * d_l) / l**3 - 2 * omega**2 / (l**2 * x_grid[1:-1])) * v[1:-1]
                  - (omega**2 / l**2) * second_diff_tem(u, dx)
-                 - ((l * (omega**2 - 2 * x_grid[1:-1] * omega * d_omega) - x_grid[1:-1] * omega**2 * d_l) / (l**3 * x_grid[1:-1])) * first_diff_tem(u, dx)
+                 - ((2 * l * omega * d_omega - omega**2 * d_l) / l**3 + 2 * omega**2 / (l**2 * x_grid[1:-1])) * first_diff_tem(u, dx)
                  + ricci / 6 * v[1:-1]),
                 [-first_diff_tem(v, dx, [None, None])[-1] - v[-1] / x_grid[-1]]
             ))
         ]
 
-        return super().solve(params, depth)
+        return super().solve(params, depth, scale)

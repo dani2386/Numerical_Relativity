@@ -21,11 +21,11 @@ dx = 0.25
 sigma = 0.02
 
 # Target directory
-tar_dir_ = f'bin/3D'
+tar_dir_ = f'bin/3DHyperNEW_no_rescale'
 
 depth = 50
 
-runs = 3
+runs = 1
 
 ################################################################################################
 
@@ -33,9 +33,9 @@ def main(params, tar_dir):
     os.makedirs(f'{tar_dir}/{params}', exist_ok=True)
 
     #solver = WESolver1D(tar_dir, X, T, init_1d, bc)
-    solver = WESolver3D(tar_dir, X, T, init_3d)
+    #solver = WESolver3D(tar_dir, X, T, init_3d)
     #solver = WESolver1DHyper(tar_dir, R, S, T, init_1d, bc)
-    #solver = WESolver3DHyper(tar_dir, R, S, T, init_3d)
+    solver = WESolver3DHyper(tar_dir, R, S, T, init_3d)
 
     x_grid = solver.get_x_grid(params)
     t_grid = solver.get_t_grid(params)
@@ -49,11 +49,6 @@ def main(params, tar_dir):
     ################################################
 
     print('Plotting...')
-#    fig1, ax1 = plt.subplots()
-#    ax1.axvline(x=R, color='r', linestyle='--')
-#    ax1.plot(x_grid, solver.get_solution(params, T))
-#    fig1.savefig(f"{tar_dir}/last_frame.png")
-
     fig2, ax2 = plt.subplots()
     ax2.set_ylim(-1.2, 1.2)
     ax2.axvline(x=R, color='r', linestyle='--')
@@ -86,37 +81,31 @@ def main(params, tar_dir):
     fig3.savefig(f"{tar_dir}/{params}/norm_self_conv.png")
     print('Done\n')
 
-#    ################################################
-#
-#    print('Solving point-wise convergence...')
-#    solver.solve_convergence(params, depth)
-#    print('Done\n')
-#
-#    ################################################
-#
-#    print('Plotting point-wise convergence...')
-#    fig4, ax4 = plt.subplots()
-#    ax4.axvline(x=R, color='r', linestyle='--')
-#
-#    line4, = ax4.plot(x_grid, solver.get_convergence(params, 0)[0])
-#    line5, = ax4.plot(x_grid, 4 * solver.get_convergence(params, 0)[1])
-#    text4 = ax4.text(0.05, 0.9, '', transform=ax4.transAxes)
-#
-#    def update4(frame):
-#        line4.set_ydata(solver.get_convergence(params, t_grid[frame])[0])
-#        line5.set_ydata(4 * solver.get_convergence(params, t_grid[frame])[1])
-#        text4.set_text(f't = {t_grid[frame]} s')
-#        return line4, line5, text4
-#
-#    ani4 = animation.FuncAnimation(fig4, update4, frames=len(t_grid) - 1, blit=False)
-#    ani4.save(f"{tar_dir}/{params}/point_self_conv.mp4", writer="ffmpeg", dpi=200, fps=60)
+    ################################################
 
-#    fig5, ax5= plt.subplots()
-#    ax5.axvline(x=R, color='r', linestyle='--')
-#    ax5.plot(x_grid, solver.get_convergence(params, T)[0])
-#    ax5.plot(x_grid, 4 * solver.get_convergence(params, T)[1])
-#    fig5.savefig(f"{tar_dir}/last_frame_conv.png")
-#    print('Done\n')
+    print('Solving point-wise convergence...')
+    solver.solve_convergence(params, depth)
+    print('Done\n')
+
+    ################################################
+
+    print('Plotting point-wise convergence...')
+    fig4, ax4 = plt.subplots()
+    ax4.axvline(x=R, color='r', linestyle='--')
+
+    line4, = ax4.plot(x_grid, solver.get_convergence(params, 0)[0])
+    line5, = ax4.plot(x_grid, 4 * solver.get_convergence(params, 0)[1])
+    text4 = ax4.text(0.05, 0.9, '', transform=ax4.transAxes)
+
+    def update4(frame):
+        line4.set_ydata(solver.get_convergence(params, t_grid[frame])[0])
+        line5.set_ydata(4 * solver.get_convergence(params, t_grid[frame])[1])
+        text4.set_text(f't = {t_grid[frame]} s')
+        return line4, line5, text4
+
+    ani4 = animation.FuncAnimation(fig4, update4, frames=len(t_grid) - 1, blit=False)
+    ani4.save(f"{tar_dir}/{params}/point_self_conv.mp4", writer="ffmpeg", dpi=200, fps=60)
+    print('Done\n')
 
     ################################################
 
