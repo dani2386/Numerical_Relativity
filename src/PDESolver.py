@@ -54,6 +54,8 @@ class PDESolver:
         dataset = f'{'n' if kwargs.get('norm') is True else 'p'}_{'e' if kwargs.get('exact') is not None else 's'}_conv_{params}'
         courant_param, dx, sigma, dt, m_max, n_max, x_grid, t_grid = self.params(params)
 
+        if self.file.dataset(dataset): return dataset
+
         n_sol = 2 if kwargs.get("exact") is not None else 3
         params = [[courant_param, dx / 2**i, sigma] for i in range(n_sol)]
         sol_dataset = [self.solve(params[i], depth) for i in range(n_sol)]
@@ -74,6 +76,7 @@ class PDESolver:
             else:
                 self.file.save(dataset, (0, slice(n, min(n + depth, n_max + 1)), slice(None)), error[0])
                 self.file.save(dataset, (1, slice(n, min(n + depth, n_max + 1)), slice(None)), error[1])
+        return dataset
 
     def get_x_grid(self, params):
         return self.params(params)[6]

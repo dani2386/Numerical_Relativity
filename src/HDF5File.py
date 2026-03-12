@@ -32,7 +32,6 @@ class HDF5File:
         with h5py.File(self.filename, 'a') as file:
             for key, value in kwargs.items():
                 file[dataset].attrs[key] = value
-
     def load_metadata(self, dataset, keys):
         with h5py.File(self.filename, 'r') as file:
             if len(keys) == 1:

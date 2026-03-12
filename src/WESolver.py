@@ -19,8 +19,8 @@ class WESolver1D(PDESolver):
 
 
 class WESolver3D(PDESolver):
-    def __init__(self, path, x, t, init):
-        super().__init__(path, x, t, init, ['sym', None], None)
+    def __init__(self, path, x, t, init, bc):
+        super().__init__(path, x, t, init, ['odd', bc], None)
 
     def solve(self, params, depth, scale=None):
         courant_param, dx, sigma, dt, m_max, n_max, x_grid = self.params(params)[:-1]
@@ -30,14 +30,29 @@ class WESolver3D(PDESolver):
             lambda u: np.concatenate(([first_diff_tem(u, dx, self.bc)[0]], u[1:] / x_grid[1:]))
         ]
 
-        # linear (rescaled)
+        # linear (rescaled) and finite
         self.f = [
             lambda t, u, v: v,
-            lambda t, u, v: np.concatenate((
-                second_diff_tem(u, dx, self.bc)[:-1],
-                [-first_diff_tem(v, dx, self.bc)[-1] - v[-1] / x_grid[-1]]
-            ))
+            lambda t, u, v: second_diff_tem(u, dx, self.bc)
         ]
+
+#        # linear finite
+#        self.f = [
+#            lambda t, u, v: v,
+#            lambda t, u, v: np.concatenate((
+#                [3 * second_diff_tem(u, dx, self.bc)[0]],
+#                second_diff_tem(u, dx, self.bc)[1:] + 2 * first_diff_tem(u, dx, self.bc)[1:] / x_grid[1:]
+#            ))
+#        ]
+
+#        # linear (rescaled)
+#        self.f = [
+#            lambda t, u, v: v,
+#            lambda t, u, v: np.concatenate((
+#                second_diff_tem(u, dx, self.bc)[:-1],
+#                [-first_diff_tem(v, dx, self.bc)[-1] - v[-1] / x_grid[-1]]
+#            ))
+#        ]
 
 #        # linear
 #        self.f = [
